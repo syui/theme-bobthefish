@@ -179,7 +179,7 @@ function __bobthefish_git_ahead -S -d 'Print the ahead/behind state for the curr
         set ahead 1
       case '<*'
         if [ $ahead -eq 1 ]
-          echo "$__bobthefish_git_plus_minus_glyph"
+          echo '±'
           return
         end
         set behind 1
@@ -187,9 +187,9 @@ function __bobthefish_git_ahead -S -d 'Print the ahead/behind state for the curr
   end
 
   if [ $ahead -eq 1 ]
-    echo "$__bobthefish_git_plus_glyph"
+    echo '+'
   else if [ $behind -eq 1 ]
-    echo "$__bobthefish_git_minus_glyph"
+    echo '-'
   end
 end
 
@@ -205,11 +205,11 @@ function __bobthefish_git_ahead_verbose -S -d 'Print a more verbose ahead/behind
     case '0 0' # equal to upstream
       return
     case '* 0' # ahead of upstream
-      echo "$__bobthefish_git_ahead_glyph$ahead"
+      echo "↑$ahead"
     case '0 *' # behind upstream
-      echo "$__bobthefish_git_behind_glyph$behind"
+      echo "↓$behind"
     case '*' # diverged from upstream
-      echo "$__bobthefish_git_ahead_glyph$ahead$__bobthefish_git_behind_glyph$behind"
+      echo "↑$ahead↓$behind"
   end
 end
 
@@ -427,7 +427,7 @@ function __bobthefish_prompt_user -S -d 'Display actual user if different from $
       __bobthefish_start_segment $__color_username
       set -l IFS .
       hostname | read -l hostname __
-      echo -ns (whoami) '@' $hostname ' '
+      echo -ns $__bobtherfish_user_icon ' ' (whoami) '@' $hostname ' '
     end
   end
 end
@@ -466,9 +466,9 @@ function __bobthefish_prompt_hg -S -a current_dir -d 'Display the actual hg stat
 end
 
 function __bobthefish_prompt_git -S -a current_dir -d 'Display the actual git state'
-  set -l dirty   (command git diff --no-ext-diff --quiet --exit-code; or echo -n "$__bobthefish_git_dirty_glyph")
-  set -l staged  (command git diff --cached --no-ext-diff --quiet --exit-code; or echo -n "$__bobthefish_git_staged_glyph")
-  set -l stashed (command git rev-parse --verify --quiet refs/stash >/dev/null; and echo -n "$__bobthefish_git_stashed_glyph")
+  set -l dirty   (command git diff --no-ext-diff --quiet --exit-code; or echo -n '*')
+  set -l staged  (command git diff --cached --no-ext-diff --quiet --exit-code; or echo -n '~')
+  set -l stashed (command git rev-parse --verify --quiet refs/stash >/dev/null; and echo -n '$')
   set -l ahead   (__bobthefish_git_ahead)
 
   set -l new ''
@@ -476,7 +476,11 @@ function __bobthefish_prompt_git -S -a current_dir -d 'Display the actual git st
   if [ "$theme_display_git_untracked" != 'no' -a "$show_untracked" != 'false' ]
     set new (command git ls-files --other --exclude-standard --directory --no-empty-directory)
     if [ "$new" ]
-      set new "$__bobthefish_git_untracked_glyph"
+      if [ "$theme_avoid_ambiguous_glyphs" = 'yes' ]
+        set new '...'
+      else
+        set new '…'
+      end
     end
   end
 
@@ -674,11 +678,10 @@ function __bobthefish_show_ruby -S -d 'Current Ruby (rvm/rbenv)'
     set -q RBENV_ROOT
       or set -l RBENV_ROOT $HOME/.rbenv
 
-    [ -e "$RBENV_ROOT/version" ]
-      and read -l global_ruby_version <"$RBENV_ROOT/version"
+    read -l global_ruby_version <$RBENV_ROOT/version
 
     [ "$global_ruby_version" ]
-      or set -l global_ruby_version system
+      or set global_ruby_version system
 
     [ "$ruby_version" = "$global_ruby_version" ]; and return
   else if type -q chruby
@@ -807,19 +810,20 @@ function fish_prompt -d 'bobthefish, a fish theme optimized for awesome'
   set -l last_status $status
 
   # Powerline glyphs
-  set -l __bobthefish_branch_glyph            \uE0A0
-  set -l __bobthefish_right_black_arrow_glyph \uE0B0
-  set -l __bobthefish_right_arrow_glyph       \uE0B1
-  set -l __bobthefish_left_black_arrow_glyph  \uE0B2
-  set -l __bobthefish_left_arrow_glyph        \uE0B3
+  set -l __bobtherfish_user_icon	       ''
+  set -l __bobthefish_branch_glyph             ''
+  set -l __bobthefish_right_black_arrow_glyph  ''
+  set -l __bobthefish_right_arrow_glyph        '>'
+  set -l __bobthefish_left_black_arrow_glyph   ''
+  set -l __bobthefish_left_arrow_glyph         '<'
 
   # Additional glyphs
-  set -l __bobthefish_detached_glyph          \u27A6
-  set -l __bobthefish_tag_glyph               \u2302
+  set -l __bobthefish_detached_glyph          ''
+  set -l __bobthefish_tag_glyph               ''
   set -l __bobthefish_nonzero_exit_glyph      '! '
   set -l __bobthefish_superuser_glyph         '$ '
   set -l __bobthefish_bg_job_glyph            '% '
-  set -l __bobthefish_hg_glyph                \u263F
+  set -l __bobthefish_hg_glyph                ''
 
   # Python glyphs
   set -l __bobthefish_superscript_glyph       \u00B9 \u00B2 \u00B3
@@ -829,51 +833,35 @@ function fish_prompt -d 'bobthefish, a fish theme optimized for awesome'
   set -l __bobthefish_ruby_glyph              ''
 
   # Vagrant glyphs
-  set -l __bobthefish_vagrant_running_glyph   \u2191 # ↑ 'running'
-  set -l __bobthefish_vagrant_poweroff_glyph  \u2193 # ↓ 'poweroff'
-  set -l __bobthefish_vagrant_aborted_glyph   \u2715 # ✕ 'aborted'
-  set -l __bobthefish_vagrant_saved_glyph     \u21E1 # ⇡ 'saved'
-  set -l __bobthefish_vagrant_stopping_glyph  \u21E3 # ⇣ 'stopping'
-  set -l __bobthefish_vagrant_unknown_glyph   '!'    # strange cases
-
-  # Git glyphs
-  set -l __bobthefish_git_dirty_glyph      '*'
-  set -l __bobthefish_git_staged_glyph     '~'
-  set -l __bobthefish_git_stashed_glyph    '$'
-  set -l __bobthefish_git_untracked_glyph  '…'
-  set -l __bobthefish_git_ahead_glyph      \u2191 # '↑'
-  set -l __bobthefish_git_behind_glyph     \u2193 # '↓'
-  set -l __bobthefish_git_plus_glyph       '+'
-  set -l __bobthefish_git_minus_glyph      '-'
-  set -l __bobthefish_git_plus_minus_glyph '±'
+  set -l __bobthefish_vagrant_running_glyph   '↑'
+  set -l __bobthefish_vagrant_poweroff_glyph  '↓'
+  set -l __bobthefish_vagrant_aborted_glyph   '✕'
+  set -l __bobthefish_vagrant_saved_glyph     '⇡'
+  set -l __bobthefish_vagrant_stopping_glyph  '⇣'
+  set -l __bobthefish_vagrant_unknown_glyph   '!'
 
   # Disable Powerline fonts
   if [ "$theme_powerline_fonts" = "no" ]
-    set __bobthefish_branch_glyph            \u2387
-    set __bobthefish_right_black_arrow_glyph ''
-    set __bobthefish_right_arrow_glyph       ''
-    set __bobthefish_left_black_arrow_glyph  ''
-    set __bobthefish_left_arrow_glyph        ''
+    set __bobthefish_branch_glyph            '' 
+    set __bobthefish_right_black_arrow_glyph '' 
+    set __bobthefish_right_arrow_glyph       '>' 
+    set __bobthefish_left_black_arrow_glyph  '' 
+    set __bobthefish_left_arrow_glyph        '<' 
   end
 
   # Use prettier Nerd Fonts glyphs
   if [ "$theme_nerd_fonts" = "yes" ]
-    set __bobthefish_branch_glyph     \uF418
-    set __bobthefish_detached_glyph   \uF417
-    set __bobthefish_tag_glyph        \uF412
+    set __bobthefish_branch_glyph     '' 
+    set __bobthefish_detached_glyph   ''
+    set __bobthefish_tag_glyph        ''
 
     set __bobthefish_virtualenv_glyph \uE73C ' '
     set __bobthefish_ruby_glyph       \uE791 ' '
 
-    set __bobthefish_vagrant_running_glyph  \uF431 # ↑ 'running'
-    set __bobthefish_vagrant_poweroff_glyph \uF433 # ↓ 'poweroff'
-    set __bobthefish_vagrant_aborted_glyph  \uF468 # ✕ 'aborted'
-    set __bobthefish_vagrant_unknown_glyph  \uF421 # strange cases
-  end
-
-  # Avoid ambiguous glyphs
-  if [ "$theme_avoid_ambiguous_glyphs" = "yes" ]
-    set __bobthefish_git_untracked_glyph '...'
+    set __bobthefish_vagrant_running_glyph  '↑'
+    set __bobthefish_vagrant_poweroff_glyph '↓'
+    set __bobthefish_vagrant_aborted_glyph  '✕'
+    set __bobthefish_vagrant_unknown_glyph  '!'
   end
 
 
@@ -1370,3 +1358,5 @@ function fish_prompt -d 'bobthefish, a fish theme optimized for awesome'
 
   __bobthefish_finish_segments
 end
+
+z --add "$PWD"
